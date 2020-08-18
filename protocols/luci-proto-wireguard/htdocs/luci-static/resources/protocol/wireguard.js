@@ -1,7 +1,13 @@
 'use strict';
 'require uci';
+'require rpc';
 'require form';
 'require network';
+
+var generateKey = rpc.declare({
+	object: 'luci.wireguard',
+	method: 'getWgKeys'
+});
 
 function validateBase64(section_id, value) {
 	if (value.length == 0)
@@ -54,6 +60,18 @@ return network.registerProtocol('wireguard', {
 		o.password = true;
 		o.validate = validateBase64;
 		o.rmempty = false;
+
+		o = s.taboption('general', form.Button, 'generate_key', _('Generate Key'), _(''));
+		o.inputstyle = 'apply';
+		o.onclick = L.bind(function(ev) {
+			return  generateKey().then(L.bind(function(result) {
+				var keyInput = document.getElementById("widget.cbid.network." + s.section + ".private_key" );
+				keyInput.value = result.keys.priv;
+				var changeEvent = new Event('change');
+				keyInput.dispatchEvent(changeEvent);
+			},this));
+		},
+		this);
 
 		o = s.taboption('general', form.Value, 'listen_port', _('Listen Port'), _('Optional. UDP port used for outgoing and incoming packets.'));
 		o.datatype = 'port';
